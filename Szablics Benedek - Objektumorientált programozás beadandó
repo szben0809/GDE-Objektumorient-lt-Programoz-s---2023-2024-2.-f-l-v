@@ -1,0 +1,171 @@
+from datetime import datetime, timedelta
+import random
+#1: Osztályok létrehozása
+class Szoba: #"Szoba" absztrakt osztály létrehozása (ár, szobaszám) attribútumokkal.
+    def __init__(self, szobaszam, ar):
+        self.szobaszam = szobaszam
+        self.ar = ar
+
+    def __str__(self):
+        return f"Szobaszám: {self.szobaszam}, Ár: {self.ar} Ft"
+
+class EgyagyasSzoba(Szoba): #A "Szoba" osztályból származtatott "Egyagyasszoba" lérehozása, saját ágytípus argumentummal.
+    def __init__(self, szobaszam, ar, agytipus):
+        super().__init__(szobaszam, ar)
+        self.agytipus = agytipus
+
+    def __str__(self):
+        return f"Szobaszám: {self.szobaszam}, Ár: {self.ar} Ft, Szobatípus: Egyágyas, Ágytípus: {self.agytipus}"
+
+class KetagyasSzoba(Szoba): #A "Szoba" osztályból származtatott "Ketagyasszoba" létrehozása, saját terasz argumentummal.
+    def __init__(self, szobaszam, ar, terasz):
+        super().__init__(szobaszam, ar)
+        self.terasz = terasz
+
+    def __str__(self):
+        return f"Szobaszám: {self.szobaszam}, Ár: {self.ar} Ft, Szobatípus: Kétágyas, Terasz: {'Van' if self.terasz else 'Nincs'}"
+
+class Szalloda: #"Szálloda" osztály létrehozása, melyet a szobák alkotnak, és rendelkezik egy saját ("név") attribútummal.
+    def __init__(self, nev):
+        self.nev = nev
+        self.szobak = []
+
+    def szoba_hozzaadasa(self, szoba):
+        self.szobak.append(szoba)
+
+class Foglalas: #"Foglalás" osztály létrehozása, amelybe a "Szálloda" szobáinak foglalását tároljuk.
+    def __init__(self, szoba, datum):
+        self.szoba = szoba
+        self.datum = datum
+
+    def __str__(self):
+        return f"Szoba: {self.szoba}, Dátum: {self.datum.strftime('%Y-%m-%d')}"
+#2: Foglalások Kezelése (metódusok)
+class FoglalasKezelo:
+    def __init__(self):
+        self.foglalasok = []
+
+    def foglalas(self, szoba, datum): #Metódus implementálása, mely lehetővé teszi szobák foglalását dátum alapján, visszaadva azok árát.
+        foglalas = Foglalas(szoba, datum)
+        self.foglalasok.append(foglalas)
+        return szoba.ar #Így visszaadja a szoba árát foglaláskor.
+
+    def lemondas(self, foglalas): #Metódus implementálása, mely lehetővé teszi a foglalás lemondását.
+        if foglalas in self.foglalasok:
+            self.foglalasok.remove(foglalas)
+        else:
+            print("Nem található ilyen foglalás.")
+
+    def foglalasok_listazasa(self): #Metódus implementálása, ami listázza az összes foglalást.
+        for foglalas in self.foglalasok:
+            print(foglalas)
+
+def foglalas_felvetel(szalloda, foglalaskezelo):
+    print(f"{szalloda.nev} - Elérhető szobák:")
+    for szoba in szalloda.szobak:
+        print(szoba)
+
+    szobaszam = input("Kérem válasszon szobát: ")
+#3: Felhasználói Interfész és adatvalidáció
+    # Algoritmus készítése, mely ellenőrzi a foglalás létrehozásakor, hogy a dátum érvényes (jövőbeni) és a szoba akkor elérhető-e.
+    jelenlegi_datum = datetime.now().date()
+    while True:
+        datum_str = input("Kérem adja meg a foglalás dátumát (YYYY-MM-DD formátumban): ")
+        try:
+            datum = datetime.strptime(datum_str, "%Y-%m-%d").date()
+            if datum <= jelenlegi_datum:
+                print("Csak a holnapi vagy azt követő dátumot lehet megadni!")
+            else:
+                break
+        except ValueError:
+            print("Hibás dátum formátum! Kérem, adjon meg egy dátumot a következő formátumban: ÉÉÉÉ-HH-NN")
+
+    for foglalas in foglalaskezelo.foglalasok:
+        if foglalas.szoba.szobaszam == szobaszam and foglalas.datum == datum:
+            print("Ez a szoba ezen a dátumon már foglalt.")
+            return
+
+    for szoba in szalloda.szobak:
+        if szoba.szobaszam == szobaszam:
+            foglalaskezelo.foglalas(szoba, datum)
+            print("Foglalás sikeresen felvéve.")
+            return
+    print("Nem található ilyen szoba.")
+
+def foglalas_lemondasa(foglalaskezelo):
+    print("Aktuális foglalások:")
+    foglalaskezelo.foglalasok_listazasa()
+    szobaszam = input("Kérem adja meg a lemondani kívánt foglalás szobaszámát: ")
+    while True:# Algoritmus készítése, mely biztosítja, hogy a lemondások csak létező foglalásokra legyenek lehetségesek (feltételek: megfelelő dátumformátum és adott időpontban valóban foglalt az adott szoba).
+        datum_str = input("Kérem adja meg a lemondani kívánt foglalás dátumát (YYYY-MM-DD formátumban): ")
+        try:
+            datum = datetime.strptime(datum_str, "%Y-%m-%d").date()
+            break
+        except ValueError:
+            print("Hibás dátum formátum! Kérem adjon meg egy dátumot a következő formátumban: ÉÉÉÉ-HH-NN")
+
+    for foglalas in foglalaskezelo.foglalasok:
+        if foglalas.szoba.szobaszam == szobaszam and foglalas.datum == datum:
+            foglalaskezelo.lemondas(foglalas)
+            print("Foglalás sikeresen törölve.")
+            return
+    print("Nem található ilyen foglalás.")
+
+def foglalasok_listazasa(foglalaskezelo):
+    print("Aktuális foglalások:")
+    for foglalas in foglalaskezelo.foglalasok:
+        print(foglalas)
+
+def main():
+    # A rendszer feltöltése az első futtatás után, a felhasználói adatbekérés előtt 1 szállodával, 3 szobával (melyek közül mindenképp lennie kell egy egyágyasnak és egy kétágyasnak is) és 5 foglalással.
+    nevek = ["Hargitai Ágota Motel", "Öreg Tölgy Hotel", "Hilton Szálló", 'Péntek 13 Ifjúsági Üdülő', "Jakab Isti Fitness & Wellness Club"]
+    szalloda = Szalloda(random.choice(nevek))
+    # Hozzáadunk legalább egy egyágyas és egy kétágyas szobát
+    szalloda.szoba_hozzaadasa(EgyagyasSzoba("101", 5000, random.choice(["egyszemélyes ágy", "franciaágy"])))
+    szalloda.szoba_hozzaadasa(KetagyasSzoba("102", 7500, random.choice([True, False])))
+
+    # Harmadik szoba hozzáadása (véletlenszerűen egy- vagy kétágyas)
+    harmadik_szoba_tipus = random.choice([EgyagyasSzoba, KetagyasSzoba])
+    harmadik_szoba_ar = 5000 if harmadik_szoba_tipus == EgyagyasSzoba else 7500
+    if harmadik_szoba_tipus == EgyagyasSzoba:
+        harmadik_szoba = EgyagyasSzoba("103", harmadik_szoba_ar, random.choice(["egyszemélyes ágy", "franciaágy"]))
+    else:
+        harmadik_szoba = KetagyasSzoba("103", harmadik_szoba_ar, random.choice([True, False]))
+    szalloda.szoba_hozzaadasa(harmadik_szoba)
+
+    foglalaskezelo = FoglalasKezelo()
+
+    # Foglalások generálása
+    for _ in range(5):
+        foglalt_szobak = [(foglalas.szoba.szobaszam, foglalas.datum) for foglalas in foglalaskezelo.foglalasok]
+        while True:
+            szoba = random.choice(szalloda.szobak)
+            holnap = datetime.now().date() + timedelta(days=1)
+            datum = holnap + timedelta(days=random.randint(0, 365))
+            if (szoba.szobaszam, datum) not in foglalt_szobak:
+                foglalaskezelo.foglalas(szoba, datum)
+                break
+
+    while True: #Egyszerű felhasználói interfész készítése, ahol a felhasználó kiválaszthatja a kívánt műveletet (foglalás, lemondás, listázás, kilépés)
+        print("\nVálasszon műveletet:")
+        print("1. Foglalás")
+        print("2. Lemondás")
+        print("3. Foglalások listázása")
+        print("4. Kilépés")
+        print(f"Szálloda: {szalloda.nev}")
+        valasztas = input("Kérem válasszon: ")
+
+        if valasztas == "1":
+            foglalas_felvetel(szalloda, foglalaskezelo)
+        elif valasztas == "2":
+            foglalas_lemondasa(foglalaskezelo)
+        elif valasztas == "3":
+            foglalasok_listazasa(foglalaskezelo)
+        elif valasztas == "4":
+            print("Köszönjük, hogy minket választott.")
+            break
+        else:
+            print("Érvénytelen választás.")
+
+if __name__ == "__main__":
+    main()
